@@ -209,30 +209,5 @@ def display_examples(model, input, num_images=5, size=[275, 275],
     if save_path:
         plt.savefig(save_path)
 
-def angle_difference(x, y):
-    """
-    Calculate minimum difference between two angles.
-    """
-    return 180 - abs(abs(x - y) - 180)
-
-
-def angle_error(y_true, y_pred):
-    """
-    Calculate the mean diference between the true angles
-    and the predicted angles. Each angle is represented
-    as a binary vector.
-    """
-    diff = angle_difference(K.argmax(y_true), K.argmax(y_pred))
-    return K.mean(K.cast(K.abs(diff), K.floatx()))
-
-
-def angle_error_regression(y_true, y_pred):
-    """
-    Calculate the mean diference between the true angles
-    and the predicted angles. Each angle is represented
-    as a float number between 0 and 1.
-    """
-    return K.mean(angle_difference(y_true * 360, y_pred * 360))
-
 
 print("utils.py loaded")

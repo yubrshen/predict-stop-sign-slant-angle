@@ -1,0 +1,158 @@
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline author:t
+#+OPTIONS: broken-links:nil c:nil creator:nil d:(not "LOGBOOK") date:t e:t
+#+OPTIONS: email:nil f:t inline:t num:t p:nil pri:nil prop:nil stat:t tags:t
+#+OPTIONS: tasks:t tex:t timestamp:t title:t toc:t todo:t |:t
+#+DATE: <2018-02-02 Fri>
+#+AUTHOR: Aaron Yu Shen
+#+EMAIL: yubrshen@gmail.com
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+#+CREATOR: Emacs 25.3.2 (Org mode 9.1.6)
+
+#+TITLE: Prediction of "Stop Sign" Slant Angle By Deep Learning
+
+* Introduction
+
+The problem is to identify (or predict) the slant angle of "stop sign" in
+image based on sample images (4830 pieces) of "stop sign" in various slant
+angles with ground-truth labeled. The range of the slant angle is from -80 to 80
+degree. The expected resolution is one degree. For each degree, there are 30
+samples.
+
+The "slant angle" of a "stop sign" is defined as an angle of the plane of the "stop
+sign" measured perpendicular to the image plane.
+The definition is based on [[https://www.ncbi.nlm.nih.gov/pubmed/6850004][Slant-tilt: the visual encoding of surface orientation]]
+
+Given the nature of the problem, especially with the availability of the labeled
+samples, I decide to use machine learning approach to address the problem.
+
+This work is based on the previous work [[https://d4nst.github.io/2017/01/12/image-orientation/][Correcting Image Orientation Using
+Convolutional Neural Networks]] (RotNet)
+for similar problem of predicting rotation angle of an image.
+
+Although the work
+provides the initial inspiration, my implementation differs from it mainly by
+using regression instead of classification to predict the slant angle of
+the "stop sign". While the previous work concluded that using classification is
+more effective for its problem of predicting image rotation. In its case, there
+were a few limited angle possibilities. Therefore, using classification may
+still be feasible. The major contribution of my work is to use a different
+activation function that is suitable to predict the slant angle of "stop
+sign" as a regression problem. (In my opinion, even for predicting the rotation angle, regression would
+have been more accurate, if a suitable activation function were used.).
+
+The implementation has three parts.
+- The first is the module utils.py. It provides the data generator required for training and testing. It also provides the display of the test samples. It is partially adapted from the previous work (RotNet).
+- The second part is a Jupyter notebook to define the network and train the network, showing the training performance. The tools used are mainly Keras.
+- The Thirst is a Jupyter notebook to perform the testing, and show the test performance.
+
+For your reading convenience, all the notebooks have been saved as HTML files as
+well. The links in this document refer to the HTML version. The originals are
+also attached that you can reproduce the experiments.
+
+* Network Design
+
+I have tried a few architectures including a simple convolutional deep neural
+network with dropout and provide the prediction by classification.
+Based on experiments the current architecture is most successful.
+
+The current architecture uses of pre-trained deep neural network as a feature
+extractor.
+It adds a fully connected layer to express the prediction of the slant angle as regression.
+
+The pre-trained network is
+ [[https://github.com/fchollet/keras/blob/master/keras/applications/resnet50.py][ResNet50]].
+It has been trained with  [[http://image-net.org/ ][IMAGENET images]]. It's chosen by the RotNet and demonstrated
+feasible as feature extractor for image rotation angle prediction.
+
+With the front-end feature extractor already trained, the training will focus on
+tuning the weights of the newly added fully connected last layer.
+
+The loss function of mean-squared-error is used as the loss function in
+training. Given the nature of regression problem, I think that
+mean-squared-error as loss metric is appropriate.
+
+It turned out that the choice of the activated function is the most critical.
+Once I found the tanh function which represents the range from -1 to 1 of the
+normalized target value,
+the training became very successful. It only takes less than 10 epochs to reach
+loss value 0.0002.
+
+For further details of the network design, please read
+[[./stop_sign_slant_tilt_regression.html][network design work book]]
+
+
+* Training Samples and Pre-processing
+
+The sample data is divided into three parts.
+- The first part is for training,
+- the second part for validation and
+- the last part for testing.
+
+The ratio of the split is 0.7, 0.2, 0.1, respectively for training, validation, and testing.
+
+The image is pre-processed using Keras pre-processing procedure required by ResNet50.
+
+The target value is normalized by dividing 80 which is the maximum of the angle.
+When doing the prediction the reverse of the normalization is performed.
+The detailed the prepossessing is implemented in the module
+[[file:utils.py]]
+
+* Training and Testing Performance
+
+The training results show the loss metric (mean-squared-error) is only training
+loss: 2.8157e-04 - validation loss: 2.0087e-04 after 10 epochs. Roughly this is
+equivalent to 0.02 error in prediction, i.e. 2% error.
+
+In the testing with samples never used in the training and validation, the
+mean-squared-error is only 2.4494470510814737e-05. This corresponds to less than
+2% error on average in the prediction.
+
+The low observation is further confirmed by random sampling of 30 tests, it
+showed that the predicted angles is indeed close to the ground-truth (true
+angle) mostly in the last digit, or in the first decimal. If we do the round off
+to the last digit, it would have been identical to the ground-truth most of the
+time.
+
+For the training performance, please check
+[[./stop_sign_slant_tilt_regression.html][training workbook]]
+
+For the testing performance, please check [[./test_stop_sign_slant_tilt_angle.html][testing workbook]]
+
+* Conclusion and Future Improvement
+
+It is feasible using Deep neural network to predict the slant angle of "stop
+signs" in the properly curated samples.
+The architecture and approach of using pre-trained established deep neural
+network as a feature extractor with  adding a fully connected layer as
+expression of regression is successful.
+This may suggest that the  established deep neural networks pre-trained
+with IMAGENET indeed have learned some geometry feature extraction that may
+might be useful for geometry feature extraction in image pattern recognition.
+
+From this experiment using regression approach is more appropriate to predict
+the slant angle of a "stop sign" than classification. It might be due to the
+continuous nature of the visual information in the "stop sign" samples. The
+regression scheme might be able to exploit such continuity, while classification
+scheme would be more difficult to model such adjacency of the slant angles.
+
+When the time permits more exploration may be performed in simplified neural
+network
+to reduce the training time and resource.
+Furthermore considering the sample show very consistent dominant variations over
+the horizontal direction,
+special shape kernels of a convolution with the wide width might be helpful to
+extract the relevant features for the slant angle prediction.
+
+The sample size is rather limited. There are only 30 samples for each degree.
+The current experiments may be constrained by the small sample size.
+More samples to train/validate and test would further help to understand the
+effectiveness of generalization of the prediction.
+
+It's interesting to note that with the capability to use the predicted slant
+angle of well understood
+landmark such as "stop sign", it would assist to calculate or reconstruct the
+positional relationship of events captured in an image. This might be of
+application for more accurate understanding of the events in the image, such as
+road traffic characterization, etc.

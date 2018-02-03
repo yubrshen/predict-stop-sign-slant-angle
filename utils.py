@@ -130,8 +130,8 @@ class DataGenerator(Iterator):
                 target = int(deg_f(self.filenames[j]))
 
             # store the image and label in their corresponding batches
-            batch_x[i] = image # rotated_image
-            batch_y[i] = target # rotation_angle
+            batch_x[i] = image
+            batch_y[i] = target
 
         if self.one_hot:
             # convert the numerical labels to binary labels
@@ -164,27 +164,24 @@ def display_examples(model, input, num_images=5, size=[275, 275],
     the specified number of example images
     with the original angles and the predicted angles shown.
     """
-
     images = []
     slant_degrees = []
     filenames = input
     N = len(filenames)
     indexes = np.random.choice(N, num_images)
     for i in indexes:
-        image = mpimg.imread(filenames[i])
-        # image = cv2.imread(filenames[i])
-        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # image = mpimg.imread(filenames[i])
+        image = cv2.imread(filenames[i], 1)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) #.astype('float32')
         images.append(image)
         slant_degrees.append(int(deg_f(filenames[i])))
-    images = np.asarray(images, dtype='float32')
     slant_degrees = np.asarray(slant_degrees, dtype='float32')
 
     if preprocess_func:
-        images_processed = preprocess_func(images)
+        images_processed = preprocess_func(np.asarray(images, dtype='float32'))
 
     degrees_pred = np.squeeze(model.predict(images_processed))*max_range
 
-    # print("degrees_pred: {}".format(degrees_pred))
     plt.figure(figsize=(10.0, 2 * num_images))
 
     title_fontdict = {
@@ -198,8 +195,6 @@ def display_examples(model, input, num_images=5, size=[275, 275],
         ax = plt.subplot(num_images, 3, fig_number)
         plt.title('True angle: {:.0f}\nPredicted angle: {:.2f}'.format
                   (true_angle, predicted_angle), fontdict=title_fontdict)
-        # print("True angle: {:.0f}; Predicted angle: {:.2f}".format
-        #       (true_angle, predicted_angle))
         plt.imshow(image)
         plt.axis('off')
 
